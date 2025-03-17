@@ -14,11 +14,11 @@ randwick['time'] = pd.to_datetime(randwick['time'])
 beach_surveys['time'] = pd.to_datetime(beach_surveys['time'])
 wndwavecrt['time'] = pd.to_datetime(wndwavecrt['time'])
 
-# Merge randwick with wndwavecrt using left join
+# Merge randwick with wndwavecrt using inner join
 merged_randwick = pd.merge(randwick, wndwavecrt, on=['time', 'beach_lat', 'beach_lon'], how='inner')
 merged_randwick.to_csv('merged_randwick.csv', index=False)
 
-# Merge beach surveys with wndwavecrt using left join
+# Merge beach surveys with wndwavecrt using inner join
 merged_beach_surveys = pd.merge(beach_surveys, wndwavecrt, on=['time', 'beach_lat', 'beach_lon'], how='inner')
 merged_beach_surveys.to_csv('merged_beach_surveys.csv', index=False)
 
