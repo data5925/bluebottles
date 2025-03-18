@@ -13,18 +13,22 @@ Merge by inner
 3. Outliers
 
 # EDA
-1. Descriptive
+**1. Descriptive**
 - Summary statistics for numerical and categorical variables
 - Distribution of key variables
-2. Distribution & Trends
+- 
+**2. Distribution & Trends**
 - Histogram/boxplots for numerical variables.
 - Trends over time (occurrences, wind speeds, wave heights).
-3. Correlation
+- 
+**3. Correlation**
 - Correlation matrix
 - Pairwise scatter plots for highly correlated variables.
-4. Geospatial
+- 
+**4. Geospatial**
 - Distribution of observations across beaches (latitude & longitude).
 - Density of bluebottle presence by location.
-5. Time-Series
+- 
+**5. Time-Series**
 - Seasonality in bluebottle occurrences.
 - Trends in wave height, wind speed, temperature
