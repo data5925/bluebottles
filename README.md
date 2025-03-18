@@ -20,6 +20,7 @@ Merge by inner
 **2. Distribution & Trends**
 - Histogram/boxplots for numerical variables.
 - Trends over time (occurrences, wind speeds, wave heights).
+- Seasonality in bluebottle occurrences.
   
 **3. Correlation**
 - Correlation matrix
@@ -29,6 +30,3 @@ Merge by inner
 - Distribution of observations across beaches (latitude & longitude).
 - Density of bluebottle presence by location.
   
-**5. Time-Series**
-- Seasonality in bluebottle occurrences.
-- Trends in wave height, wind speed, temperature
