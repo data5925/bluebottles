@@ -16,7 +16,7 @@ Merge by inner
 **1. Descriptive**
 - Summary statistics for numerical and categorical variables
 - Distribution of key variables
-- 
+  
 **2. Distribution & Trends**
 - Histogram/boxplots for numerical variables.
 - Trends over time (occurrences, wind speeds, wave heights).
