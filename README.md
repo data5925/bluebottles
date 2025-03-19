@@ -18,7 +18,7 @@ Merge by inner
 - Distribution of key variables
   
 **2. Distribution & Trends**
-- Histogram/boxplots for numerical variables.
+- Histogram/boxplots... for numerical variables.
 - Trends over time (occurrences, wind speeds, wave heights).
 - Seasonality in bluebottle occurrences.
   
@@ -27,6 +27,5 @@ Merge by inner
 - Pairwise scatter plots for highly correlated variables.
   
 **4. Geospatial**
-- Distribution of observations across beaches (latitude & longitude).
-- Density of bluebottle presence by location.
+- Distribution of observations across beaches (latitude & longitude map?).
   
