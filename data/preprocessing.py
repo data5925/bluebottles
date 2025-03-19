@@ -34,7 +34,7 @@ columns_to_clean = [col for col in numerical_df.columns if col not in excluded_c
 outliers_mask = (df[columns_to_clean] < lower_bound[columns_to_clean]) | (df[columns_to_clean] > upper_bound[columns_to_clean])
 df = df[~outliers_mask.any(axis=1)].reset_index(drop=True)
 
-# No duplicate_rows,perfect!
+# No duplicate_rows, perfect!
 duplicate_rows = df[df.duplicated()]
 #print(f"Number of duplicate rows: {len(duplicate_rows)}")
 
