@@ -5,6 +5,12 @@ df = pd.read_csv('merged_randwick.csv')
 df['time'] = pd.to_datetime(df['time'])
 bluebottles_mapping = {'Likely': 1, 'Some': 2, 'Many': 3, np.nan: 0}
 df['bluebottles'] = df['bluebottles'].map(bluebottles_mapping)
+beach_mapping = {
+    'Maroubra Beach (North)': 0,
+    'Coogee Beach': 1,
+    'Clovelly Beach': 2
+}
+df['beach.x'] = df['beach.x'].map(beach_mapping)
 
 print("Initial Data Types:")
 print(df.dtypes)
@@ -29,7 +35,7 @@ lower_bound = Q1 - 1.5 * IQR
 upper_bound = Q3 + 1.5 * IQR
 
 # Here after checkinh the data, outliers in following variables won't be removed. For the rest variables,I directly remove them due to the small amount of outliers(<5%)
-excluded_columns = ['presence', 'bluebottles', 'beach_lon', 'length', 'orientation', 'embaymentisation']
+excluded_columns = ['beach.x','presence', 'bluebottles', 'beach_lon', 'length', 'orientation', 'embaymentisation']
 columns_to_clean = [col for col in numerical_df.columns if col not in excluded_columns]
 outliers_mask = (df[columns_to_clean] < lower_bound[columns_to_clean]) | (df[columns_to_clean] > upper_bound[columns_to_clean])
 df = df[~outliers_mask.any(axis=1)].reset_index(drop=True)
