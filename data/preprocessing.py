@@ -75,3 +75,8 @@ print(categorical_summary)
 #    - surf_club: 3 clubs, mainly Coogee SLSC (1307 records)
 #    - slsa_branch & state: Only "Sydney Inc." & "NSW"
 #    - source: All data from "BeachWatch"
+
+#drop unnecessary col
+columns_to_drop = ['time','source','beach', 'beach_key', 'surf_club', 'slsa_branch', 'state', 
+                   'beach_lat', 'beach_lon', 'length', 'orientation', 'embaymentisation']
+df.drop(columns=columns_to_drop, inplace=True)
