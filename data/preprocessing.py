@@ -79,5 +79,6 @@ print(categorical_summary)
 
 #drop unnecessary col
 columns_to_drop = ['source','beach', 'beach_key', 'surf_club', 'slsa_branch', 'state', 
-                   'beach_lat', 'beach_lon', 'length', 'orientation', 'embaymentisation']
+                   'beach_lat', 'beach_lon', 'length', 'orientation', 'embaymentisation', 
+                   'crt_closest_lat', 'crt_closest_lon', 'wnd_closest_lat', 'wnd_closest_lon', 'wave_closest_lat', 'wave_closest_lon']
 df.drop(columns=columns_to_drop, inplace=True)
