@@ -95,7 +95,7 @@ num_vars = [
     'wave_cge', 'wnd_sfcWindspeed'
 ]
 
-#Histogram/ Boxplots for numerical variables
+#2.1 Histogram/ Boxplots for numerical variables
 for var in num_vars:
     plt.figure(figsize=(10, 5))
     sns.histplot(df[var], kde=True, bins=20, color='skyblue')
@@ -111,14 +111,12 @@ for var in num_vars:
         plt.xlabel(var, fontsize=12)
         plt.show()
 
-#Visualization of categorical variables
-# Cross-tabulate beach and bluebottle levels  
+#2.2 Visualization of categorical variables
+#2.2.1 Cross-tabulate beach and bluebottle levels  
 cross_tab = pd.crosstab(df['beach.x'], df['bluebottles'])  
-
 # Map labels  
 cross_tab.index = ['Maroubra', 'Coogee', 'Clovelly']  
 cross_tab.columns = ['None', 'Likely', 'Some', 'Many']  
-
 # Plot stacked bar chart  
 plt.figure(figsize=(10, 6))  
 cross_tab.plot(kind='bar', stacked=True, colormap='Pastel2')  
@@ -128,3 +126,19 @@ plt.ylabel('Frequency', fontsize=12)
 plt.legend(title='Bluebottle Level', bbox_to_anchor=(1.05, 1))  
 plt.xticks(rotation=0)  
 plt.show()  
+
+#2.2.2 Heapmap: Show the cross frequency between surf_club and state
+contingency = pd.crosstab(df['surf_club'], df['state'])
+plt.figure(figsize=(8, 6))
+plt.imshow(contingency, cmap='viridis', aspect='auto')
+plt.title("Heatmap: surf_club vs state")
+plt.xlabel("state")
+plt.ylabel("surf_club")
+plt.colorbar(label='Count')
+plt.xticks(ticks=np.arange(len(contingency.columns)), labels=contingency.columns)
+plt.yticks(ticks=np.arange(len(contingency.index)), labels=contingency.index)
+for i in range(len(contingency.index)):
+    for j in range(len(contingency.columns)):
+         plt.text(j, i, contingency.iloc[i, j], ha="center", va="center", color="white")
+plt.tight_layout()
+plt.show()
