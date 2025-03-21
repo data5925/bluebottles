@@ -82,3 +82,49 @@ columns_to_drop = ['source','beach', 'beach_key', 'surf_club', 'slsa_branch', 's
                    'beach_lat', 'beach_lon', 'length', 'orientation', 'embaymentisation', 
                    'crt_closest_lat', 'crt_closest_lon', 'wnd_closest_lat', 'wnd_closest_lon', 'wave_closest_lat', 'wave_closest_lon']
 df.drop(columns=columns_to_drop, inplace=True)
+
+#Step 2: Distribution and trend
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style("whitegrid")
+plt.figure(figsize=(12, 8))
+
+num_vars = [
+    'presence', 'bluebottles', 
+    'crt_temp', 'wave_hs', 
+    'wave_cge', 'wnd_sfcWindspeed'
+]
+
+#Histogram/ Boxplots for numerical variables
+for var in num_vars:
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df[var], kde=True, bins=20, color='skyblue')
+    plt.title(f'Distribution of {var}', fontsize=14)
+    plt.xlabel(var, fontsize=12)
+    plt.ylabel('Frequency', fontsize=12)
+    plt.show()
+    
+    if var not in ['presence', 'bluebottles']:  
+        plt.figure(figsize=(10, 3))
+        sns.boxplot(x=df[var], color='lightgreen')
+        plt.title(f'Boxplot of {var}', fontsize=14)
+        plt.xlabel(var, fontsize=12)
+        plt.show()
+
+#Visualization of categorical variables
+# Cross-tabulate beach and bluebottle levels  
+cross_tab = pd.crosstab(df['beach.x'], df['bluebottles'])  
+
+# Map labels  
+cross_tab.index = ['Maroubra', 'Coogee', 'Clovelly']  
+cross_tab.columns = ['None', 'Likely', 'Some', 'Many']  
+
+# Plot stacked bar chart  
+plt.figure(figsize=(10, 6))  
+cross_tab.plot(kind='bar', stacked=True, colormap='Pastel2')  
+plt.title('Bluebottle Levels by Beach', fontsize=14)  
+plt.xlabel('Beach', fontsize=12)  
+plt.ylabel('Frequency', fontsize=12)  
+plt.legend(title='Bluebottle Level', bbox_to_anchor=(1.05, 1))  
+plt.xticks(rotation=0)  
+plt.show()  
