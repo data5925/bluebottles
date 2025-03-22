@@ -1,7 +1,10 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import seaborn as sns
-  sns.set_style("whitegrid")
+
+df = pd.read_csv("cleaned_data.csv", parse_dates=['time'])
+
+sns.set_style("whitegrid")
 plt.figure(figsize=(12, 8))
 
 num_vars = [
