@@ -13,7 +13,7 @@ def trend(target,beach):
     Step2: Using 4 different time intervals to check auto-correlation
     Step3: Decompose to visualize the trends
     """
-    df = pd.read_csv(r'D:\8959project\bluebottles\data\cleaned_data.csv')
+    df = pd.read_csv('cleaned_data.csv')
 
     # extract the data on the last day of each month 
     df['time'] = pd.to_datetime(df['time'])
