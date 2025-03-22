@@ -1,0 +1,39 @@
+import numpy as np 
+import matplotlib.pyplot as plt
+import seaborn as sns
+  sns.set_style("whitegrid")
+plt.figure(figsize=(12, 8))
+
+num_vars = [
+    'presence', 'bluebottles', 
+    'crt_temp', 'wave_hs', 
+    'wave_cge', 'wnd_sfcWindspeed'
+]
+
+#2.1 Histogram/ Boxplots for numerical variables
+for var in num_vars:
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df[var], kde=True, bins=20, color='skyblue')
+    plt.title(f'Distribution of {var}', fontsize=14)
+    plt.xlabel(var, fontsize=12)
+    plt.ylabel('Frequency', fontsize=12)
+    plt.show()
+    
+    if var not in ['presence', 'bluebottles']:  
+        plt.figure(figsize=(10, 3))
+        sns.boxplot(x=df[var], color='lightgreen')
+        plt.title(f'Boxplot of {var}', fontsize=14)
+        plt.xlabel(var, fontsize=12)
+        plt.show()
+
+ bbox_to_anchor=(1.05, 1))  
+plt.xticks(rotation=0)  
+plt.show()  
+
+#Distribution of Presence on different beaches
+plt.figure(figsize=(10, 6))
+sns.barplot(x='beach.x', y='presence', data=df, estimator=np.mean, ci=None)
+plt.title('Average Presence Rate by Beach')
+plt.xticks([0,1,2], ['Maroubra', 'Coogee', 'Clovelly'])
+plt.ylabel('Presence Probability')
+plt.show()
