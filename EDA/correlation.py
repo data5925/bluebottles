@@ -9,7 +9,9 @@ corr_matrix = df.corr()
 plt.figure(figsize=(12, 8))
 sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
 plt.title("Correlation Matrix of Cleaned Bluebottle Dataset")
+plt.savefig('heatmap.png', bbox_inches='tight')
 plt.show()
+
 
 # Identify highly correlated variable pairs (absolute correlation > 0.7)
 high_corr_pairs = (
@@ -44,18 +46,18 @@ axes = axes.flatten()
 for i, (var1, var2) in enumerate(top_correlated_pairs):
     sns.scatterplot(data=df, x=var1, y=var2, alpha=0.5, ax=axes[i])
     axes[i].set_title(f"{var1} vs {var2} (r={high_corr_pairs.iloc[i]['correlation']:.2f})")
-
 plt.tight_layout()
+plt.savefig('high_corr_scatterplots.png', bbox_inches='tight')
 plt.show()
 
 """
 Observations:
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
+- None or likely bluebottle sightings correspond to an absence, while some or many sightings correspond to a presence
+- Strong positive correlation between surface air temperature (Kelvin) and potential water temperature (Celsius) is expected
+- Strong positive correlation between sea water x velocity and y velocity means dominant current directions are NE and SW
+- Wave energy is proportional to the square of wave height: bigger waves result in exponentially more energy being carried by the waves (strong positive exponential correlation)
+- Relatively strong negative correlation between t01 (avg time between waves) and fp (frequency of wave peaks) make sense (higher t01 = slower waves, higher fp = faster waves)
+- The sin of dir and cosine of dir make parts of sin and cosine waves respectively (last 2 scatterplots), and form a part of the unit circle together (3rd row, right)
+- The above 3 graphs being incomplete implies that the directions of the waves in our data doesn't cover the full 0 to 360 range, which makes sense
+
 """
