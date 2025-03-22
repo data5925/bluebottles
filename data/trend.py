@@ -28,11 +28,13 @@ def trend(target,beach):
     rolling_mean = df.rolling(3).mean()
     rolling_std = df.rolling(3).std()
     # visualize
-    plt.plot(df, color="blue", label="Original " + target + " data")
-    plt.plot(rolling_mean, color="red", label="Rolling mean " + target)
-    plt.plot(rolling_std, color="black", label="Rolling standard Deviation in " + target)
-    plt.title(target + " Time Series, Rolling Mean, Standard Deviation")
+    target_name = str(target).capitalize()
+    plt.plot(df, color="blue", label="Original " + target_name + " data")
+    plt.plot(rolling_mean, color="red", label="Rolling mean " + target_name)
+    plt.plot(rolling_std, color="black", label="Rolling standard Deviation in " + target_name)
+    plt.title(target_name + " Time Series, Rolling Mean, Standard Deviation")
     plt.legend(loc="best")
+    plt.xticks(size = 7, rotation="vertical")
     plt.show()
     # augmented Dickey-Fuller test 
     adft = adfuller(df,autolag="AIC")
@@ -53,4 +55,6 @@ def trend(target,beach):
     # decomposition
     decompose = seasonal_decompose(df[target],model='additive',period=7)
     decompose.plot()
+    plt.xticks(size = 7, rotation="vertical")
     plt.show()
+
