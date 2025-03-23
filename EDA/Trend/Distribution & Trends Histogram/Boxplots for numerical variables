@@ -55,3 +55,41 @@ plt.tight_layout()
 plt.savefig(f'{marine_vars}_hist.png', dpi=300, bbox_inches='tight')
 plt.show()
 
+
+#2.2 Visualization of categorical variables
+#2.2.1 Cross-tabulate beach and bluebottle levels  
+cross_tab = pd.crosstab(df['beach.x'], df['bluebottles'])  
+# Map labels  
+cross_tab.index = ['Maroubra', 'Coogee', 'Clovelly']  
+cross_tab.columns = ['None', 'Likely', 'Some', 'Many']  
+# Plot stacked bar chart  
+plt.figure(figsize=(10, 6))  
+cross_tab.plot(kind='bar', stacked=True, colormap='Pastel2')  
+plt.title('Bluebottle Levels by Beach', fontsize=14)  
+plt.xlabel('Beach', fontsize=12)  
+plt.ylabel('Frequency', fontsize=12)  
+plt.legend(title='Bluebottle Level', bbox_to_anchor=(1.05, 1))  
+plt.xticks(rotation=0)  
+plt.savefig('Bluebottle Levels by Beach.png', dpi=300, bbox_inches='tight')
+plt.show()  
+
+# 2.2.2 Presence Time Trend (aggregated by month)
+df['month'] = df['time'].dt.month
+monthly_presence = df.groupby('month')['presence'].mean().reset_index()
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='month', y='presence', data=monthly_presence, marker='o')
+plt.title('Monthly Trend of Jellyfish Presence')
+plt.xticks(range(1,13), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
+plt.grid(True)
+plt.savefig('Monthly Trend of Jellyfish Presence.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 2.2.3 Sea Water temperature time series (rolling weekly average)
+plt.figure(figsize=(16, 6))
+df.set_index('time')['crt_temp'].resample('W').mean().plot()
+plt.title('Sea Temperature Trend (Weekly Average)')
+plt.ylabel('Temperature (°C)')
+plt.grid(True)
+plt.savefig('Sea Temperature Trend (Weekly Average).png', dpi=300, bbox_inches='tight')
+plt.show()
