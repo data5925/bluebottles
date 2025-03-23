@@ -45,6 +45,11 @@ df = df[~outliers_mask.any(axis=1)].reset_index(drop=True)
 duplicate_rows = df[df.duplicated()]
 #print(f"Number of duplicate rows: {len(duplicate_rows)}")
 
+df['wnd_dir'] = (np.degrees(np.arctan2(df['wnd_uas'], df['wnd_vas'])) + 360) % 360
+if 'wave_sin_dir' in df.columns:
+    df = df.drop(columns=['wave_sin_dir'])
+
+
 #EDA
 #Summary statistics for numerical and categorical variables
 numerical_summary = df.describe().T 
