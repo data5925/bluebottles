@@ -1,3 +1,10 @@
+# Binary LSTM for Bluebottle Presence
+# Target: `presence` (binary classification)
+# Features: all other columns(without `bluebottles`)
+# LSTM with class weights to address imbalance
+# TensorFlow / Keras
+# Initial attempt (v1)
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
