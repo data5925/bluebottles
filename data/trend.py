@@ -15,9 +15,9 @@ def trend(target,beach):
     """
     df = pd.read_csv('cleaned_data.csv')
 
-    # extract the data on the last day of each month 
+    # extract the mean data of each month 
     df['time'] = pd.to_datetime(df['time'])
-    df = df.groupby(['beach.x', df['time'].dt.strftime('%Y-%m')])[target].last().reset_index()
+    df = df.groupby(['beach.x', df['time'].dt.strftime('%Y-%m')])[target].mean().reset_index()
     df = df[df['beach.x'] == beach]
     df = df[['time', target]]
     # set the index
