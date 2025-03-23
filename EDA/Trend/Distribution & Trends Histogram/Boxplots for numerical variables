@@ -44,3 +44,14 @@ plt.ylabel('Presence Probability')
 
 plt.savefig('Average_Presence_Rate_by_Beach.png', dpi=300, bbox_inches='tight')
 plt.show()
+
+#Distribution of Marine environmental variables
+marine_vars = ['crt_salt', 'crt_temp', 'crt_u', 'crt_v']
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+for ax, var in zip(axes.flatten(), marine_vars):
+    sns.histplot(df[var], kde=True, ax=ax, bins=20)
+    ax.set_title(f'Distribution of {var}', fontsize=14)
+plt.tight_layout()
+plt.savefig(f'{marine_vars}_hist.png', dpi=300, bbox_inches='tight')
+plt.show()
+
