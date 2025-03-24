@@ -46,8 +46,7 @@ duplicate_rows = df[df.duplicated()]
 #print(f"Number of duplicate rows: {len(duplicate_rows)}")
 
 df['wnd_dir'] = (np.degrees(np.arctan2(df['wnd_uas'], df['wnd_vas'])) + 360) % 360
-if 'wave_sin_dir' in df.columns:
-    df = df.drop(columns=['wave_sin_dir'])
+
 
 
 #EDA
@@ -87,6 +86,11 @@ columns_to_drop = ['source','beach', 'beach_key', 'surf_club', 'slsa_branch', 's
                    'beach_lat', 'beach_lon', 'length', 'orientation', 'embaymentisation', 
                    'crt_closest_lat', 'crt_closest_lon', 'wnd_closest_lat', 'wnd_closest_lon', 'wave_closest_lat', 'wave_closest_lon']
 df.drop(columns=columns_to_drop, inplace=True)
+
+# Finalise the group's data after EDA (remove wnd_temp and wave_cge because we already have crt_temp, and hs+t01)
+df = pd.read_csv("data/cleaned_data2.csv", parse_dates=['time'])
+df.drop(columns=['wnd_temp','wave_cge'], inplace=True)
+df.to_csv('final_data.csv', index=False)
 
 #Step 2: Distribution and trend
 import matplotlib.pyplot as plt
