@@ -24,7 +24,11 @@ def trend(target,beach):
     df.index = df['time']
     del df['time']
 
-    # test stationarity 
+    # test stationarity
+    """
+    If the statistic is more negative than the tabulated critical value, at the 95% level, the null hypothesis of a unit root will be rejected.
+    That means, the time serious data is stationary and will not have a trend or seasonality.
+    """
     rolling_mean = df.rolling(3).mean()
     rolling_std = df.rolling(3).std()
     # visualize
@@ -58,3 +62,20 @@ def trend(target,beach):
     plt.xticks(size = 7, rotation="vertical")
     plt.show()
 
+"""
+result: I got a problem. Take trend('bluebottles', 0), trend('bluebottles', 1), trend('bluebottles', 2) as examples. 
+Only the trend('bluebottles', 2) pass the test. And another problem is the choice for lag of auto-correlation. Here is the result:
+ Values                       Metric
+0  -1.322802              Test Statistics
+1   0.618677                      p-value
+2   7.000000             No. of lags used
+3  26.000000  Number of observations used
+4  -3.711212          critical value (1%)
+5  -2.981247          critical value (5%)
+6  -2.630095         critical value (10%)
+One Month Lag:  0.10549810112382406
+Three Month Lag:  -0.024481089264452898
+Six Month Lag:  -0.3205959577982013
+Nine Month Lag:  0.03661317360730444
+"""
+    
