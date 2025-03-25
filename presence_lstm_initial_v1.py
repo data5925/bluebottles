@@ -2,7 +2,7 @@
 # Target: `presence` (binary classification)
 # Features: all other columns(without `bluebottles`)
 # LSTM with class weights to address imbalance
-# TensorFlow / Keras
+# TensorFlow 
 # Initial attempt (v1)
 
 import pandas as pd
