@@ -1,5 +1,5 @@
 # This model is based on the tutorial on GeeksforGeeks (https://www.geeksforgeeks.org/long-short-term-memory-lstm-rnn-in-tensorflow/)
-# Note: no set seed so results are different every time (30 days window size is most consistent with accuracy > 0.9)
+# Note: no set seed so results are different every time (30 days window size is more consistent than 7-14 days, with accuracy > 0.9)
 
 import numpy as np
 import pandas as pd
