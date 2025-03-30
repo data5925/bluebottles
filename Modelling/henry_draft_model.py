@@ -69,6 +69,10 @@ predicted_classes = (predictions >= 0.7).astype(int).flatten()
 accuracy = np.mean(predicted_classes == y_test)
 print(f'Accuracy: {accuracy:.2f}')
 
+cm = confusion_matrix(y_test, predicted_classes)
+print(cm)
+print(classification_report(y_test, predicted_classes))
+
 # Plot actual vs predicted
 plt.figure(figsize=(12, 6))
 plt.plot(dates_test, y_test, label='Actual Presence', alpha=0.5)
@@ -79,17 +83,4 @@ plt.ylabel('Presence (1 = Present, 0 = Absent)')
 plt.legend()
 plt.tight_layout()
 plt.show()
-
-cm = confusion_matrix(y_test, predicted_classes)
-
-# Plot confusion matrix
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Absent', 'Present'], yticklabels=['Absent', 'Present'])
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.show()
-
-# Print classification report (precision, recall, F1)
-print(classification_report(y_test, predicted_classes))
 
