@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
 
 # Load dataset
 data = pd.read_csv('data/final_data.csv')
@@ -78,4 +80,16 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
+cm = confusion_matrix(y_test, predicted_classes)
+
+# Plot confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Absent', 'Present'], yticklabels=['Absent', 'Present'])
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.show()
+
+# Print classification report (precision, recall, F1)
+print(classification_report(y_test, predicted_classes))
 
