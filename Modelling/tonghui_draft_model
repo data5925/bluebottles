@@ -1,0 +1,122 @@
+import os
+import random
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.utils.class_weight import compute_class_weight
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import EarlyStopping
+from imblearn.over_sampling import SMOTE
+import tensorflow as tf
+
+# === Set global random seed for full reproducibility ===
+SEED = 42
+os.environ["PYTHONHASHSEED"] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+
+# 1. Load data
+df = pd.read_csv("final_data.csv")
+
+# 2. Extract time-based features
+df["time"] = pd.to_datetime(df["time"])
+df["dayofyear"] = df["time"].dt.dayofyear
+df["weekday"] = df["time"].dt.weekday
+df["month"] = df["time"].dt.month
+
+# 3. Sort by time to maintain sequence order
+df = df.sort_values("time")
+
+# 4. Separate features and labels
+features = df.drop(columns=["time", "presence"])
+target = df["presence"]
+
+# 5. Normalize features using Min-Max Scaling
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(features)
+
+# 6. Create time-series sequences
+def create_sequences(X, y, time_steps=14):
+    X_seq, y_seq = [], []
+    for i in range(len(X) - time_steps):
+        X_seq.append(X[i:i+time_steps])
+        y_seq.append(y[i+time_steps])
+    return np.array(X_seq), np.array(y_seq)
+
+time_steps = 14
+X_seq, y_seq = create_sequences(X_scaled, target.values, time_steps)
+
+# 7. Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X_seq, y_seq, test_size=0.2, random_state=SEED, stratify=y_seq
+)
+
+# 8. Apply SMOTE on flattened training data
+nsamples, timesteps, nfeatures = X_train.shape
+X_train_flat = X_train.reshape((nsamples, timesteps * nfeatures))
+smote = SMOTE(random_state=SEED)
+X_train_bal, y_train_bal = smote.fit_resample(X_train_flat, y_train)
+X_train_bal = X_train_bal.reshape((-1, timesteps, nfeatures))
+
+# 9. One-hot encode the labels
+y_train_cat = to_categorical(y_train_bal)
+y_test_cat = to_categorical(y_test)
+
+# 10. Compute class weights
+class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train_bal), y=y_train_bal)
+class_weights_dict = {i: class_weights[i] for i in range(len(class_weights))}
+print("Class weights:", class_weights_dict)
+
+# 11. Build LSTM model
+model = Sequential([
+    LSTM(64, input_shape=(X_train_bal.shape[1], X_train_bal.shape[2]), return_sequences=False),
+    Dropout(0.3),
+    Dense(32, activation='relu'),
+    Dense(y_train_cat.shape[1], activation='softmax')
+])
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# 12. EarlyStopping to prevent overfitting
+early_stop = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)
+
+# 13. Train the model
+history = model.fit(
+    X_train_bal, y_train_cat,
+    epochs=50,
+    batch_size=32,
+    validation_split=0.2,
+    class_weight=class_weights_dict,
+    callbacks=[early_stop]
+)
+
+# 14. Evaluate the model
+y_pred_prob = model.predict(X_test)
+y_pred = np.argmax(y_pred_prob, axis=1)
+print(classification_report(y_test, y_pred))
+
+# 15. Visualize training history
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss Over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Accuracy Over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
