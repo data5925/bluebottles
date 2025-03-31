@@ -88,7 +88,7 @@ plt.show()
 
 
 
-# Optimized with stacked LSTM, more units, early stopping, longer visualization
+# Optimized with stacked LSTM, thershold, epoch, (dropout),more units, early stopping, longer visualization
 #version2 3 4 5 6 7
 import pandas as pd
 import numpy as np
