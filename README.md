@@ -1,9 +1,10 @@
 # bluebottles
-large_file_rename.csv is too large to be added
+WHAT TO ADD/TRY FOR MODELLING:
 
-* Train LSTM model on merged_randwick (a model for all 3 beaches)
-* Train LSTM model on merged_randwick (a model for Maroubra beach only)
-* Then test this second model on beach_surveys (which only has Maroubra) - potential issue: different feature variable (I think binary vs count?)
+* CROSS-VALIDATION (TimeSeriesSplit)
+* Train LSTM model on merged_randwick (a model for Maroubra beach only), then test this second model on beach_surveys (which only has Maroubra)
+* Try different set of features
+* Plot result on map (geographical map)
 
 
 # Preprocess
