@@ -15,7 +15,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.optimizers import Adam
 
-df = pd.read_csv("data/cleaned_data.csv")
+df = pd.read_csv("cleaned_data.csv")
 df['time'] = pd.to_datetime(df['time'])
 df = df.sort_values(by='time')
 df.set_index('time', inplace=True)
