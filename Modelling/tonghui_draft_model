@@ -1,122 +1,175 @@
-import os
-import random
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
 from tensorflow.keras.callbacks import EarlyStopping
-from imblearn.over_sampling import SMOTE
 import tensorflow as tf
 
-# === Set global random seed for full reproducibility ===
-SEED = 42
-os.environ["PYTHONHASHSEED"] = str(SEED)
-random.seed(SEED)
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
+# ========== Loss Functions ========== #
+def focal_loss(gamma=2.0, alpha=0.25):
+    def focal_loss_fixed(y_true, y_pred):
+        epsilon = tf.keras.backend.epsilon()
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
+        cross_entropy = -y_true * tf.math.log(y_pred) - (1 - y_true) * tf.math.log(1 - y_pred)
+        weight = alpha * tf.pow(1 - y_pred, gamma) * y_true + (1 - alpha) * tf.pow(y_pred, gamma) * (1 - y_true)
+        return tf.reduce_mean(weight * cross_entropy)
+    return focal_loss_fixed
 
-# 1. Load data
-df = pd.read_csv("final_data.csv")
+def combo_loss(gamma=2.0, alpha=0.25, focal_weight=0.6):
+    fl = focal_loss(gamma=gamma, alpha=alpha)
+    bce = tf.keras.losses.BinaryCrossentropy()
+    def loss_fn(y_true, y_pred):
+        return focal_weight * fl(y_true, y_pred) + (1 - focal_weight) * bce(y_true, y_pred)
+    return loss_fn
 
-# 2. Extract time-based features
-df["time"] = pd.to_datetime(df["time"])
-df["dayofyear"] = df["time"].dt.dayofyear
-df["weekday"] = df["time"].dt.weekday
-df["month"] = df["time"].dt.month
+# ========== Utility Functions ========== #
+def evaluate_thresholds(y_true, y_prob, beach_id):
+    # Customized thresholds per beach
+    if beach_id == 0:
+        thresholds = np.arange(0.1, 0.5, 0.01)
+    elif beach_id == 1:
+        thresholds = np.arange(0.2, 0.5, 0.01)
+    else:
+        thresholds = np.arange(0.01, 0.5, 0.01)
+    
+    results = []
+    for threshold in thresholds:
+        y_pred = (y_prob > threshold).astype(int)
+        precision = precision_score(y_true, y_pred, zero_division=0)
+        recall = recall_score(y_true, y_pred, zero_division=0)
+        f1 = f1_score(y_true, y_pred, zero_division=0)
+        results.append((threshold, precision, recall, f1))
+    df_results = pd.DataFrame(results, columns=["Threshold", "Precision", "Recall", "F1 Score"])
+    best_idx = df_results["F1 Score"].idxmax()
+    best_threshold = df_results.loc[best_idx, "Threshold"]
+    best_f1 = df_results.loc[best_idx, "F1 Score"]
+    y_pred_best = (y_prob > best_threshold).astype(int)
+    cm = confusion_matrix(y_true, y_pred_best)
+    report = classification_report(y_true, y_pred_best)
+    print(f"✅ Beach {beach_id} | Best Threshold = {best_threshold:.2f}, F1 = {best_f1:.4f}")
+    print("Confusion Matrix:\n", cm)
+    print("Classification Report:\n", report)
+    return df_results, best_threshold, y_pred_best
 
-# 3. Sort by time to maintain sequence order
-df = df.sort_values("time")
-
-# 4. Separate features and labels
-features = df.drop(columns=["time", "presence"])
-target = df["presence"]
-
-# 5. Normalize features using Min-Max Scaling
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(features)
-
-# 6. Create time-series sequences
-def create_sequences(X, y, time_steps=14):
-    X_seq, y_seq = [], []
+def create_sequences(X, y, time_steps=15):
+    Xs, ys = [], []
     for i in range(len(X) - time_steps):
-        X_seq.append(X[i:i+time_steps])
-        y_seq.append(y[i+time_steps])
-    return np.array(X_seq), np.array(y_seq)
+        Xs.append(X[i:i+time_steps])
+        ys.append(y[i + time_steps])
+    return np.array(Xs), np.array(ys)
 
-time_steps = 14
-X_seq, y_seq = create_sequences(X_scaled, target.values, time_steps)
+def balance_classes(X, y):
+    pos_idx = np.where(y == 1)[0]
+    neg_idx = np.where(y == 0)[0]
+    n_samples = min(len(pos_idx), len(neg_idx))
+    pos_sampled = np.random.choice(pos_idx, n_samples, replace=False)
+    neg_sampled = np.random.choice(neg_idx, n_samples, replace=False)
+    idx = np.concatenate([pos_sampled, neg_sampled])
+    np.random.shuffle(idx)
+    return X[idx], y[idx]
 
-# 7. Split into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(
-    X_seq, y_seq, test_size=0.2, random_state=SEED, stratify=y_seq
-)
+# ========== Data Preparation ========== #
+df = pd.read_csv("final_data.csv")
+df['time'] = pd.to_datetime(df['time'])
+df = df.rename(columns={'beach.x': 'beach'})
+df = df.sort_values(by='time').reset_index(drop=True)
+df['dayofyear'] = df['time'].dt.dayofyear
+df['sin_day'] = np.sin(2 * np.pi * df['dayofyear'] / 365)
+df['cos_day'] = np.cos(2 * np.pi * df['dayofyear'] / 365)
 
-# 8. Apply SMOTE on flattened training data
-nsamples, timesteps, nfeatures = X_train.shape
-X_train_flat = X_train.reshape((nsamples, timesteps * nfeatures))
-smote = SMOTE(random_state=SEED)
-X_train_bal, y_train_bal = smote.fit_resample(X_train_flat, y_train)
-X_train_bal = X_train_bal.reshape((-1, timesteps, nfeatures))
+# Difference variable
+vars_to_diff = ['crt_temp', 'crt_salt', 'wave_t01', 'wnd_dir', 'wnd_uas', 'wnd_vas']
+for col in vars_to_diff:
+    df[f'{col}_diff'] = df[col].diff()
+df = df.dropna().reset_index(drop=True)
 
-# 9. One-hot encode the labels
-y_train_cat = to_categorical(y_train_bal)
-y_test_cat = to_categorical(y_test)
+# Feature construction
+original_features = [
+    'bluebottles', 'crt_temp', 'crt_u', 'crt_v',
+    'wave_hs', 'wave_t01', 'wave_fp',
+    'wave_sin_dir', 'wave_cos_dir', 'wave_dir',
+    'crt_salt', 'wnd_dir', 'wnd_uas', 'wnd_vas'
+]
+new_features = original_features + [f"{col}_diff" for col in vars_to_diff] + ['sin_day', 'cos_day']
+target = 'presence'
+time_steps = 15
 
-# 10. Compute class weights
-class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train_bal), y=y_train_bal)
-class_weights_dict = {i: class_weights[i] for i in range(len(class_weights))}
-print("Class weights:", class_weights_dict)
+# ========== Loop through beaches ========== #
+beach_ids = df['beach'].unique()
+for beach_id in beach_ids:
+    print(f"\n🏖 Processing beach {beach_id}...\n" + "-"*40)
+    df_beach = df[df['beach'] == beach_id].copy().reset_index(drop=True)
 
-# 11. Build LSTM model
-model = Sequential([
-    LSTM(64, input_shape=(X_train_bal.shape[1], X_train_bal.shape[2]), return_sequences=False),
-    Dropout(0.3),
-    Dense(32, activation='relu'),
-    Dense(y_train_cat.shape[1], activation='softmax')
-])
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    X = df_beach[new_features].values
+    y = df_beach[target].values
+    scaler = MinMaxScaler()
+    X_scaled = scaler.fit_transform(X)
+    X_seq, y_seq = create_sequences(X_scaled, y, time_steps)
+    test_time = df_beach['time'][time_steps:].reset_index(drop=True)
 
-# 12. EarlyStopping to prevent overfitting
-early_stop = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)
+    split_idx = int(len(X_seq) * 0.8)
+    X_train, X_test = X_seq[:split_idx], X_seq[split_idx:]
+    y_train, y_test = y_seq[:split_idx], y_seq[split_idx:]
+    test_time = test_time[split_idx:]
 
-# 13. Train the model
-history = model.fit(
-    X_train_bal, y_train_cat,
-    epochs=50,
-    batch_size=32,
-    validation_split=0.2,
-    class_weight=class_weights_dict,
-    callbacks=[early_stop]
-)
+    X_train_bal, y_train_bal = balance_classes(X_train, y_train)
 
-# 14. Evaluate the model
-y_pred_prob = model.predict(X_test)
-y_pred = np.argmax(y_pred_prob, axis=1)
-print(classification_report(y_test, y_pred))
+    # ✅ Beach-specific model configs
+    if beach_id == 0:
+        lstm_units = [64, 32]
+        dropout_rate = 0.3
+        loss_fn = combo_loss(focal_weight=0.7)
+    elif beach_id == 1:
+        lstm_units = [128, 64]
+        dropout_rate = 0.4
+        loss_fn = combo_loss(focal_weight=0.85)
+    else:
+        lstm_units = [32, 16]
+        dropout_rate = 0.2
+        loss_fn = combo_loss(focal_weight=0.6)
 
-# 15. Visualize training history
-plt.figure(figsize=(12, 5))
-plt.subplot(1, 2, 1)
-plt.plot(history.history['loss'], label='Train Loss')
-plt.plot(history.history['val_loss'], label='Validation Loss')
-plt.title('Loss Over Epochs')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.legend()
+    model = Sequential([
+        Bidirectional(LSTM(lstm_units[0], return_sequences=True), input_shape=(time_steps, len(new_features))),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        LSTM(lstm_units[1]),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+    early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
-plt.subplot(1, 2, 2)
-plt.plot(history.history['accuracy'], label='Train Accuracy')
-plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-plt.title('Accuracy Over Epochs')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend()
+    model.fit(
+        X_train_bal, y_train_bal,
+        validation_split=0.2,
+        epochs=50,
+        batch_size=32,
+        callbacks=[early_stop],
+        verbose=0
+    )
 
-plt.tight_layout()
-plt.show()
+    y_prob = model.predict(X_test).flatten()
+    threshold_df, best_threshold, y_pred_label = evaluate_thresholds(y_test, y_prob, beach_id=beach_id)
+
+    df_time = pd.DataFrame({
+        "Time": test_time,
+        "Actual": y_test,
+        "Predicted": y_pred_label,
+        "Predicted Prob.": y_prob
+    })
+    plt.figure(figsize=(16, 5))
+    plt.plot(df_time["Time"], df_time["Actual"], label="Actual", marker='o', alpha=0.6)
+    plt.plot(df_time["Time"], df_time["Predicted"], label="Predicted", marker='x', alpha=0.6)
+    plt.plot(df_time["Time"], df_time["Predicted Prob."], label="Predicted Prob.", alpha=0.5)
+    plt.axhline(best_threshold, color='red', linestyle=':', label=f'Threshold = {best_threshold:.2f}')
+    plt.title(f"Beach {beach_id} - Actual vs Predicted Bluebottle Presence")
+    plt.xlabel("Time")
+    plt.ylabel("Label / Probability")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
