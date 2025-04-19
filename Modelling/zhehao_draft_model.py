@@ -58,7 +58,7 @@ ocsvm_scores = ocsvm.decision_function(all_flat)
 
 # ─── 3. STEP 2a: ARTIFICIAL “BACKGROUND” NEGATIVES ─────────────────────────────
 # Following Vert & Vert (2006), sample negatives from a Gaussian background
-# fitted to the positive class density level sets :contentReference[oaicite:0]{index=0}
+# fitted to the positive class density level sets 
 mean_pos = np.mean(pos_flat, axis=0)
 cov_pos  = np.cov(pos_flat, rowvar=False)
 n_artificial = len(pos_flat)
