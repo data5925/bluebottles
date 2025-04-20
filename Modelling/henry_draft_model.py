@@ -12,7 +12,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 import seaborn as sns
 import tensorflow.keras.backend as K
 
-# focal loss function (alpha = 0.75 produces best accuracy)
+# focal loss function (alpha = 0.75 produces best balance)
 def binary_focal_loss(gamma=2.0, alpha=0.75):
     def focal_loss(y_true, y_pred):
         epsilon = K.epsilon()
@@ -33,10 +33,10 @@ os.environ['PYTHONHASHSEED'] = '42'
 data = pd.read_csv('data/final_data.csv')
 data['time'] = pd.to_datetime(data['time'])
 data.set_index('time', inplace=True)
-data = data[data['beach.x'] == 0]
+#data = data[data['beach.x'] == 0] # when uncommenting this line, remove beach.x in features and change threshold back to 0.5
 
 # Separate features and target (add beach.x for features when including all beaches)
-features = data[['crt_salt','crt_u','crt_v','wnd_sfcWindspeed','wnd_uas','wnd_vas','wave_fp']]
+features = data[['beach.x','crt_salt','crt_u','crt_v','wnd_sfcWindspeed','wnd_uas','wnd_vas','wave_fp']]
 target = data['presence']
 
 # Scale features
@@ -64,21 +64,6 @@ X_train_flat = X_train.reshape((X_train.shape[0], -1))
 smote = SMOTE(random_state=42)
 X_resampled, y_resampled = smote.fit_resample(X_train_flat, y_train)
 
-# RUS
-#from imblearn.under_sampling import RandomUnderSampler
-# Flatten sequences for undersampling
-#X_train_flat = X_train.reshape(X_train.shape[0], -1)
-#rus = RandomUnderSampler(random_state=42)
-#X_resampled, y_resampled = rus.fit_resample(X_train_flat, y_train)
-
-# SMOTE + RUS
-#from imblearn.under_sampling import RandomUnderSampler
-#X_train_flat = X_train.reshape((X_train.shape[0], -1))
-#smote = SMOTE(random_state=42)
-#X_smote, y_smote = smote.fit_resample(X_train_flat, y_train)
-#rus = RandomUnderSampler(random_state=42)
-#X_resampled, y_resampled = rus.fit_resample(X_smote, y_smote)'''
-
 # Reshape back to 3D for LSTM 
 X_train = X_resampled.reshape((X_resampled.shape[0], window_size, X.shape[2]))
 y_train = y_resampled
@@ -98,7 +83,7 @@ history = model.fit(X_train, y_train, epochs=20, batch_size=32, validation_split
 
 # Predict on test set
 predictions = model.predict(X_test)
-predicted_classes = (predictions >= 0.5).astype(int).flatten()
+predicted_classes = (predictions >= 0.1).astype(int).flatten()
 
 # Accuracy
 accuracy = np.mean(predicted_classes == y_test)
