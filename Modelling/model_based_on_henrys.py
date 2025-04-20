@@ -148,3 +148,23 @@ plt.show()
 
 # plot feature permutation importance
 featureImportance(features, X_test, y_test, threshold, model)  # or call function: plot feature permutation importance
+
+
+"""
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.96      0.66      0.78       635
+           1       0.06      0.47      0.11        30
+
+    accuracy                           0.65       665
+   macro avg       0.51      0.56      0.44       665
+weighted avg       0.92      0.65      0.75       665
+
+confusion matrix: see confusionMatrix.png
+distribution of presence vs absence plots: see distribution presence vs absence.png
+feature permutation importance plots: see featureImportance.png
+
+Ydata Module Issues: see zhehao_draft_model.py comments
+Ydata package imcompatibility: errors occur when tensorflow and ydata-sdk coexist in the conda environment
+"""
