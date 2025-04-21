@@ -150,6 +150,73 @@ plt.show()
 featureImportance(features, X_test, y_test, threshold, model)  # or call function: plot feature permutation importance
 
 
+# time-series cross-validation
+tscv = TimeSeriesSplit(n_splits=5)
+threshold = 0.1
+for fold, (train_idx, val_idx) in enumerate(tscv.split(X), 1):
+    print(f"\n——— Fold {fold} ———")
+    X_tr, X_val = X[train_idx], X[val_idx]
+    y_tr, y_val = y[train_idx], y[val_idx]
+    dates_val = target_dates[val_idx]
+    
+    # SMOTE on training fold
+    X_flat = X_tr.reshape(len(X_tr), -1)
+    sm = SMOTE(random_state=42)
+    X_res, y_res = sm.fit_resample(X_flat, y_tr)
+    X_tr = X_res.reshape(len(X_res), window_size, X.shape[2])
+    y_tr = y_res
+    
+    # class weights
+    weights = class_weight.compute_class_weight(
+        class_weight='balanced',
+        classes=np.unique(y_tr),
+        y=y_tr
+        )
+    cw = dict(enumerate(weights))
+    
+    # build & compile
+    model = Sequential([
+        Bidirectional(LSTM(128, return_sequences=True), input_shape=(window_size, X.shape[2])),
+        Dropout(0.2),
+        Bidirectional(LSTM(128)),
+        Dropout(0.2),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam',
+                  loss=binary_focal_loss(alpha=0.75, gamma=2.0),
+                  metrics=['accuracy'])
+    
+    # train with early stopping
+    es = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    history = model.fit(
+        X_tr, y_tr,
+        epochs=50,
+        batch_size=32,
+        validation_split=0.1,
+        shuffle=True,
+        callbacks=[es],
+        class_weight=cw,
+        verbose=0
+    )
+    
+    # predict & report
+    preds = (model.predict(X_val) >= threshold).astype(int).flatten()
+    print(classification_report(y_val, preds))
+    
+    # confusion matrix heatmap
+    cm = confusion_matrix(y_val, preds)
+    print(cm)
+    plt.figure(figsize=(5,4))
+    sns.heatmap(cm, annot=True, fmt='d',
+                xticklabels=['Abs','Pres'], yticklabels=['Abs','Pres'],
+                cbar=False)
+    plt.title(f'Fold {fold} Confusion Matrix')
+    plt.xlabel('Predicted'); plt.ylabel('Actual')
+    plt.show()
+    
+    # plot feature permutation importance on each fold
+    featureImportance(features.iloc[val_idx], X_val, y_val, threshold, model)
+
 """
 Classification Report:
               precision    recall  f1-score   support
@@ -167,4 +234,67 @@ feature permutation importance plots: see featureImportance.png
 
 Ydata Module Issues: see zhehao_draft_model.py comments
 Ydata package imcompatibility: errors occur when tensorflow and ydata-sdk coexist in the conda environment
+"""
+
+"""
+    Cross validation
+    Fold 1:
+    [[226 275]
+    [  4  49]]
+                precision    recall  f1-score   support
+
+           0       0.98      0.45      0.62       501
+           1       0.15      0.92      0.26        53
+
+    accuracy                           0.50       554
+   macro avg       0.57      0.69      0.44       554
+weighted avg       0.90      0.50      0.58       554
+
+    Fold 2:
+    [[  2 521]
+    [  0  31]]
+                precision    recall  f1-score   support
+
+           0       1.00      0.00      0.01       523
+           1       0.06      1.00      0.11        31
+
+    accuracy                           0.06       554
+   macro avg       0.53      0.50      0.06       554
+weighted avg       0.95      0.06      0.01       554
+
+    Fold 3:
+    [[  0 512]
+    [  0  42]]
+                precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00       512
+           1       0.08      1.00      0.14        42
+
+    accuracy                           0.08       554
+   macro avg       0.04      0.50      0.07       554
+weighted avg       0.01      0.08      0.01       554
+
+    Fold 4:
+    [[218 312]
+    [  4  20]]
+                precision    recall  f1-score   support
+
+           0       0.98      0.41      0.58       530
+           1       0.06      0.83      0.11        24
+
+    accuracy                           0.43       554
+   macro avg       0.52      0.62      0.35       554
+weighted avg       0.94      0.43      0.56       554
+
+    Fold 5:
+    [[  0 532]
+    [  0  22]]
+                precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00       532
+           1       0.04      1.00      0.08        22
+
+    accuracy                           0.04       554
+   macro avg       0.02      0.50      0.04       554
+weighted avg       0.00      0.04      0.00       554
 """
