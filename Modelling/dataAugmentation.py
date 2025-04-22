@@ -9,7 +9,7 @@ from ydata.dataset import Dataset
 from ydata.metadata import Metadata
 from ydata.synthesizers import TimeSeriesSynthesizer
 """
-run at ydata environment, look at https://docs.sdk.ydata.ai/latest/ more for information
+run at ydata environment, look at https://docs.sdk.ydata.ai/latest/ for more information
 """
 
 
@@ -87,7 +87,7 @@ def main():
     X_train = np.concatenate([X_pos, X_syn_neg], axis=0)
     y_train = np.concatenate([np.ones(len(X_pos)), np.zeros(len(X_syn_neg))])
     X_train, y_train = shuffle(X_train, y_train, random_state=42)
-
+ 
     print('finished')
     print(type(X_train), type(y_train))
     
@@ -102,3 +102,22 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
     main()
 
+
+
+"""
+The final result is not expected. Still investigating the problem is either on the data augmentation or the model.
+
+Classification Report:
+                precision    recall  f1-score   support
+
+           0       0.95      1.00      0.98       635
+           1       0.00      0.00      0.00        30
+
+    accuracy                           0.95       665
+   macro avg       0.48      0.50      0.49       665
+weighted avg       0.91      0.95      0.93       665
+
+Confusion Matrix:
+[[635   0]
+ [ 30   0]]
+"""
