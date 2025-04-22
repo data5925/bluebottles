@@ -1,0 +1,127 @@
+# 定义特征
+beach_0_features = [
+    'bluebottles', 'cos_day', 'crt_temp',
+    'wave_cos_dir', 'wnd_dir', 'wnd_uas',
+    'wave_dir', 'wave_t01', 'wave_sin_dir'
+]
+
+# 主流程
+for beach_id in beach_ids:
+    if beach_id != 0:
+        continue  # 这里只跑 Beach 0
+
+    print(f"\n🏖 Processing beach {beach_id}...\n" + "-"*40)
+    df_beach = df[df['beach'] == beach_id].copy().reset_index(drop=True)
+
+    # 使用手动指定的特征
+    selected_features = beach_0_features
+    print(f"✅ Beach 0 Using Features: {selected_features}")
+
+    # 数据预处理
+    X_selected = df_beach[selected_features].values
+    y = df_beach[target].values
+    scaler = MinMaxScaler()
+    X_scaled = scaler.fit_transform(X_selected)
+    X_seq, y_seq = create_sequences(X_scaled, y, time_steps)
+    test_time = df_beach['time'][time_steps:].reset_index(drop=True)
+
+    split_idx = int(len(X_seq) * 0.8)
+    X_train, X_test = X_seq[:split_idx], X_seq[split_idx:]
+    y_train, y_test = y_seq[:split_idx], y_seq[split_idx:]
+    test_time = test_time[split_idx:]
+
+    X_train_bal, y_train_bal = balance_classes(X_train, y_train)
+
+    # Beach 0 配置
+    lstm_units = [64, 32]
+    dropout_rate = 0.3
+    loss_fn = combo_loss(focal_weight=0.7)
+
+    # ========= 交叉验证 =========
+    tscv = TimeSeriesSplit(n_splits=3)
+    cv_metrics = []
+    print("\n🚀 Starting Cross-Validation...")
+    for fold, (train_idx, val_idx) in enumerate(tscv.split(X_train_bal)):
+        print(f"\n🔁 Fold {fold+1}/{tscv.n_splits}")
+        X_train_fold, X_val_fold = X_train_bal[train_idx], X_train_bal[val_idx]
+        y_train_fold, y_val_fold = y_train_bal[train_idx], y_train_bal[val_idx]
+
+        model = Sequential([
+            Bidirectional(LSTM(lstm_units[0], return_sequences=True),
+                          input_shape=(time_steps, len(selected_features))),
+            BatchNormalization(),
+            Dropout(dropout_rate),
+            LSTM(lstm_units[1]),
+            BatchNormalization(),
+            Dropout(dropout_rate),
+            Dense(1, activation='sigmoid')
+        ])
+        model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+        early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+        model.fit(
+            X_train_fold, y_train_fold,
+            validation_data=(X_val_fold, y_val_fold),
+            epochs=50,
+            batch_size=32,
+            callbacks=[early_stop],
+            verbose=0
+        )
+
+        y_val_prob = model.predict(X_val_fold).flatten()
+        _, best_threshold, y_val_pred = evaluate_thresholds(y_val_fold, y_val_prob, beach_id)
+        f1 = f1_score(y_val_fold, y_val_pred)
+        cv_metrics.append(f1)
+        print(f"🎯 Fold {fold+1} Validation F1: {f1:.4f}")
+
+    print(f"\n📊 Beach 0 CV Results:")
+    print(f"Mean F1: {np.mean(cv_metrics):.4f} (±{np.std(cv_metrics):.4f})")
+
+    # ========= 全量训练 =========
+    print("\n🚀 Training Final Model...")
+    final_model = Sequential([
+        Bidirectional(LSTM(lstm_units[0], return_sequences=True),
+                      input_shape=(time_steps, len(selected_features))),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        LSTM(lstm_units[1]),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(1, activation='sigmoid')
+    ])
+    final_model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+    early_stop_final = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+    final_model.fit(
+        X_train_bal, y_train_bal,
+        validation_split=0.2,
+        epochs=50,
+        batch_size=32,
+        callbacks=[early_stop_final],
+        verbose=0
+    )
+
+    # ========= 测试集评估 =========
+    print("\n🧪 Final Evaluation on Test Set:")
+    y_prob = final_model.predict(X_test).flatten()
+    threshold_df, best_threshold, y_pred_label = evaluate_thresholds(y_test, y_prob, beach_id)
+
+    # 可视化
+    df_time = pd.DataFrame({
+        "Time": test_time,
+        "Actual": y_test,
+        "Predicted": y_pred_label,
+        "Predicted Prob.": y_prob
+    })
+    plt.figure(figsize=(16, 5))
+    plt.plot(df_time["Time"], df_time["Actual"], label="Actual", marker='o', alpha=0.6)
+    plt.plot(df_time["Time"], df_time["Predicted"], label="Predicted", marker='x', alpha=0.6)
+    plt.plot(df_time["Time"], df_time["Predicted Prob."], label="Predicted Prob.", alpha=0.5)
+    plt.axhline(best_threshold, color='red', linestyle=':', label=f'Threshold = {best_threshold:.2f}')
+    plt.title(f"Beach {beach_id} - Actual vs Predicted Bluebottle Presence")
+    plt.xlabel("Time")
+    plt.ylabel("Label / Probability")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
