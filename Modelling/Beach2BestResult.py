@@ -86,12 +86,11 @@ df['cos_day'] = np.cos(2 * np.pi * df['dayofyear'] / 365)
 
 
 # 特征组合
-original_features = [
+new_features = [
     'crt_u', 'crt_v',
     'wave_hs', 'wnd_sfcWindspeed',
      'wnd_uas', 'wnd_vas', 'sin_day', 'cos_day'
 ]
-new_features = original_features 
 target = 'presence'
 time_steps = 14
 
