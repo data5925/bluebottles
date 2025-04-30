@@ -1,95 +1,48 @@
-import numpy as np 
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import math
+import os
 
-df = pd.read_csv("cleaned_data.csv", parse_dates=['time'])
+# 设置风格
+sns.set(style="whitegrid")
 
-sns.set_style("whitegrid")
+# 1. 读取数据
+df = pd.read_csv('final_data.csv')
+df['time'] = pd.to_datetime(df['time'])
 
-num_vars = [
-    'presence', 'bluebottles', 
-    'crt_temp', 'wave_hs', 
-    'wave_cge', 'wnd_sfcWindspeed'
-]
+# 2. 创建输出目录
+output_dir = 'variable_distribution_plots'
+os.makedirs(output_dir, exist_ok=True)
 
-# 2.1 Histogram/ Boxplots for numerical variables
-for var in num_vars:
+# 3. 分组
+groups = {
+    'crt': [col for col in df.columns if col.startswith('crt_')],
+    'wave': [col for col in df.columns if col.startswith('wave_')],
+    'wnd': [col for col in df.columns if col.startswith('wnd_')],
+    'other': [col for col in df.select_dtypes(include=['float64', 'int64']).columns
+              if not (col.startswith('crt_') or col.startswith('wave_') or col.startswith('wnd_'))]
+}
+
+def plot_group(group_name, columns):
+    num_cols = len(columns)
+    cols = 2
+    rows = math.ceil(num_cols / cols)
     
-    plt.figure(figsize=(10, 5))
-    sns.histplot(df[var], kde=True, bins=20, color='skyblue')
-    plt.title(f'Distribution of {var}', fontsize=14)
-    plt.xlabel(var, fontsize=12)
-    plt.ylabel('Frequency', fontsize=12)
-   
-    plt.savefig(f'{var}_hist.png', dpi=300, bbox_inches='tight')
+    plt.figure(figsize=(14, rows * 4))
+    for i, col in enumerate(columns, 1):
+        plt.subplot(rows, cols, i)
+        sns.histplot(data=df, x=col, kde=True, bins=30, color='cornflowerblue')
+        plt.title(f'Distribution of {col}')
+        plt.xlabel(col)
+        plt.ylabel('Count')
+
+    plt.tight_layout()
+    plt.suptitle(f'{group_name.upper()} Variable Distributions', fontsize=18, y=1.02)
+    save_path = os.path.join(output_dir, f'{group_name}_distribution.png')
+    plt.savefig(save_path, bbox_inches='tight')
     plt.show()
-    
-  
-    if var not in ['presence', 'bluebottles']:
-        plt.figure(figsize=(10, 3))
-        sns.boxplot(x=df[var], color='lightgreen')
-        plt.title(f'Boxplot of {var}', fontsize=14)
-        plt.xlabel(var, fontsize=12)
-        
-        plt.savefig(f'{var}_box.png', dpi=300, bbox_inches='tight')
-        plt.show()
 
-# Distribution of Presence on different beaches
-plt.figure(figsize=(10, 6))
-sns.barplot(x='beach.x', y='presence', data=df, estimator=np.mean, ci=None)
-plt.title('Average Presence Rate by Beach')
-plt.xticks([0,1,2], ['Maroubra', 'Coogee', 'Clovelly'])
-plt.ylabel('Presence Probability')
-
-plt.savefig('Average_Presence_Rate_by_Beach.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-#Distribution of Marine environmental variables
-marine_vars = ['crt_salt', 'crt_temp', 'crt_u', 'crt_v']
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-for ax, var in zip(axes.flatten(), marine_vars):
-    sns.histplot(df[var], kde=True, ax=ax, bins=20)
-    ax.set_title(f'Distribution of {var}', fontsize=14)
-plt.tight_layout()
-plt.savefig(f'{marine_vars}_hist.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-
-#2.2 Visualization of categorical variables
-#2.2.1 Cross-tabulate beach and bluebottle levels  
-cross_tab = pd.crosstab(df['beach.x'], df['bluebottles'])  
-# Map labels  
-cross_tab.index = ['Maroubra', 'Coogee', 'Clovelly']  
-cross_tab.columns = ['None', 'Likely', 'Some', 'Many']  
-# Plot stacked bar chart  
-plt.figure(figsize=(10, 6))  
-cross_tab.plot(kind='bar', stacked=True, colormap='Pastel2')  
-plt.title('Bluebottle Levels by Beach', fontsize=14)  
-plt.xlabel('Beach', fontsize=12)  
-plt.ylabel('Frequency', fontsize=12)  
-plt.legend(title='Bluebottle Level', bbox_to_anchor=(1.05, 1))  
-plt.xticks(rotation=0)  
-plt.savefig('Bluebottle Levels by Beach.png', dpi=300, bbox_inches='tight')
-plt.show()  
-
-# 2.2.2 Presence Time Trend (aggregated by month)
-df['month'] = df['time'].dt.month
-monthly_presence = df.groupby('month')['presence'].mean().reset_index()
-
-plt.figure(figsize=(12, 6))
-sns.lineplot(x='month', y='presence', data=monthly_presence, marker='o')
-plt.title('Monthly Trend of Jellyfish Presence')
-plt.xticks(range(1,13), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
-plt.grid(True)
-plt.savefig('Monthly Trend of Jellyfish Presence.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 2.2.3 Sea Water temperature time series (rolling weekly average)
-plt.figure(figsize=(16, 6))
-df.set_index('time')['crt_temp'].resample('W').mean().plot()
-plt.title('Sea Temperature Trend (Weekly Average)')
-plt.ylabel('Temperature (°C)')
-plt.grid(True)
-plt.savefig('Sea Temperature Trend (Weekly Average).png', dpi=300, bbox_inches='tight')
-plt.show()
+for group_name, columns in groups.items():
+    if columns:
+        plot_group(group_name, columns)
